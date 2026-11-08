@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Bunga untuk Perkenalan - Visual Novel Mini Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background-color: #0b0f19;
+      color: #f8fafc;
+      font-family: 'VT323', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pixelated {
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+    }
+
+    /* Orientation Warning for Portrait Mode */
+    #orientation-warning {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #090d16;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    @media (orientation: portrait) {
+      body:not(.allow-portrait) #orientation-warning { display: flex; }
+      body:not(.allow-portrait) #game-container { display: none !important; }
+    }
+
+    @media (max-width: 640px), (max-height: 500px) {
+      #dialogue-layer {
+        padding: 4px 6px !important;
+      }
+      #dialogue-box {
+        padding: 10px 12px !important;
+        min-height: 78px !important;
+      }
+      #dialogue-text {
+        font-size: 16px !important;
+        padding-right: 86px !important;
+      }
+      #dialogue-choices {
+        padding-right: 0 !important;
+      }
+      #dialogue-portrait {
+        right: 8px !important;
+      }
+      #dialogue-portrait img {
+        width: 80px !important;
+        height: 104px !important;
+      }
+      #dialogue-badge {
+        font-size: 9px !important;
+        padding: 3px 10px !important;
+      }
+    }
+    .phone-rotate-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      animation: rotatePhone 2.2s infinite ease-in-out;
+    }
+    @keyframes rotatePhone {
+      0% { transform: rotate(0deg) scale(1); }
+      35% { transform: rotate(-90deg) scale(1.15); }
+      70% { transform: rotate(-90deg) scale(1.15); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    /* Main Landscape Game Viewport */
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1200px;
+      max-height: 750px;
+      overflow: hidden;
+      background: #4ca036;
+      border: 4px solid #334155;
+      box-shadow: 0 0 50px rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .font-pixel { font-family: 'Press Start 2P', monospace; }
+    .font-retro { font-family: 'VT323', monospace; }
+
+    /* Chamfered badge */
+    .dialog-badge-clip {
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 100%, 0 100%);
+    }
+
+    /* Dialogue bubble styling */
+    .bubble-thought {
+      background: rgba(15, 23, 42, 0.95);
+      border-color: #0284c7;
+      color: #e0f2fe;
+    }
+    .badge-thought {
+      background: #0369a1;
+      color: #38bdf8;
+    }
+
+    .bubble-ara {
+      background: rgba(32, 16, 31, 0.95);
+      border-color: #db2777;
+      color: #fdf2f8;
+    }
+    .badge-ara {
+      background: #be185d;
+      color: #fbcfe8;
+    }
+
+    .bubble-toko {
+      background: rgba(30, 41, 59, 0.95);
+      border-color: #94a3b8;
+      color: #f1f5f9;
+    }
+    .badge-toko {
+      background: #475569;
+      color: #f8fafc;
+    }
+
+    .bubble-arel {
+      background: rgba(28, 25, 23, 0.95);
+      border-color: #ea580c;
+      color: #fff7ed;
+    }
+    .badge-arel {
+      background: #c2410c;
+      color: #fed7aa;
+    }
+
+    .pixel-btn {
+      background: #15803d;
+      border-top: 2px solid #86efac;
+      border-left: 2px solid #86efac;
+      border-bottom: 4px solid #14532d;
+      border-right: 4px solid #14532d;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 10px 18px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .pixel-btn:active {
+      transform: translateY(2px);
+      border-bottom: 2px solid #14532d;
+      border-right: 2px solid #14532d;
+    }
+
+    .pixel-btn-amber {
+      background: #d97706;
+      border-top: 2px solid #fde68a;
+      border-left: 2px solid #fde68a;
+      border-bottom: 4px solid #78350f;
+      border-right: 4px solid #78350f;
+      color: #fff;
+    }
+    .pixel-btn-pink {
+      background: #db2777;
+      border-top: 2px solid #fbcfe8;
+      border-left: 2px solid #fbcfe8;
+      border-bottom: 4px solid #831843;
+      border-right: 4px solid #831843;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fullscreen Portrait Alert -->
+  <div id="orientation-warning">
+    <div class="phone-rotate-icon">📱</div>
+    <h2 class="font-pixel" style="font-size: 13px; color: #f59e0b; margin-bottom: 10px; letter-spacing: 1px;">
+      REKOMENDASI: MODE HORIZONTAL
+    </h2>
+    <p class="font-retro" style="font-size: 24px; color: #f8fafc; max-width: 320px; line-height: 1.2;">
+      Putar HP ke samping (landscape) untuk pandangan taman yang lebih luas 📱↔️
+    </p>
+    <button id="btn-force-portrait" class="font-pixel" style="margin-top: 18px; background: #f59e0b; color: #0f172a; border: 2px solid #fde68a; padding: 10px 16px; font-size: 11px; cursor: pointer; box-shadow: 0 4px 0 #92400e;">
+      TETAP MAIN MODE VERTIKAL
+    </button>
+  </div>
+
+  <!-- Main Game Container -->
+  <div id="game-container">
+    <div id="scene-root" style="position: absolute; inset: 0; overflow: hidden;"></div>
+
+    <!-- Dialogue Box Container -->
+    <div id="dialogue-container" style="display: none; position: absolute; inset-x: 0; bottom: 0; z-index: 50; padding: 16px; width: 100%;">
+      <div style="max-width: 860px; margin: 0 auto; position: relative; cursor: pointer;" onclick="advanceDialogue()">
+        
+        <!-- Speaker Name Chamfered Badge -->
+        <div style="display: inline-block;">
+          <div id="dialogue-badge" class="font-pixel dialog-badge-clip" style="font-size: 11px; padding: 6px 16px; border-top: 2px solid; border-left: 2px solid; border-right: 2px solid; text-transform: uppercase; font-weight: bold;">
+            Arel
+          </div>
+        </div>
+
+        <!-- Bubble Frame (Anchored Bust Inside with Zero Floating Gap!) -->
+        <div id="dialogue-box" style="position: relative; border-width: 4px; border-style: solid; border-radius: 8px; padding: 16px; min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 0 rgba(0,0,0,0.6);">
+          <!-- Portrait on Right Anchored Directly on Top of Dialogue Box -->
+          <div id="dialogue-portrait" style="position: absolute; right: 28px; bottom: calc(100% - 4px); z-index: 20; pointer-events: none;"></div>
+          <div id="dialogue-text" class="font-retro" style="font-size: 22px; line-height: 1.3; padding-right: 140px;"></div>
+          
+          <!-- Choices Container -->
+          <div id="dialogue-choices" style="display: none; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; padding-right: 140px;"></div>
+
+          <!-- Advance Prompt -->
+          <div id="dialogue-prompt" class="font-pixel" style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #94a3b8; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 6px;">
+            <span>[ TEKAN SPACE / KLIK UNTUK LANJUT ]</span>
+            <span style="color: #f59e0b; font-size: 14px;">▼</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const btnForcePortrait = document.getElementById('btn-force-portrait');
+    if (btnForcePortrait) {
+      btnForcePortrait.addEventListener('click', () => {
+        document.body.classList.add('allow-portrait');
+        document.getElementById('orientation-warning').style.display = 'none';
+        document.getElementById('game-container').style.display = 'flex';
+      });
+    }
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function getAudio() {
+      if (!audioCtx && AudioCtx) audioCtx = new AudioCtx();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+    function playBlip(freq = 440) {
+      try {
+        const ctx = getAudio(); if (!ctx) return;
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {}
+    }
+    function playHeartbeat() {
+      try {
+        const ctx = getAudio(); if (!ctx) return;
+        [0, 0.22].forEach(offset => {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(80, ctx.currentTime + offset);
+          osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + offset + 0.14);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.14);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + offset); osc.stop(ctx.currentTime + offset + 0.14);
+        });
+      } catch (e) {}
+    }
+    function playChime() {
+      try {
+        const ctx = getAudio(); if (!ctx) return;
+        [523, 659, 784, 1046].forEach((f, i) => {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.06);
+          gain.gain.setValueAtTime(0.06, ctx.currentTime + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.12);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.06); osc.stop(ctx.currentTime + i * 0.06 + 0.12);
+        });
+      } catch (e) {}
+    }
+
+    let currentAct = 1;
+    let score = 0;
+    let flowersPicked = 0;
+    let hasBlueTulip = false;
+    let chosenPaper = 'kraft';
+    let chosenRibbon = 'red';
+    let synergy = false;
+
+    let dialogueLines = [];
+    let dialogueIndex = 0;
+    let typingInterval = null;
+    let isTyping = false;
+    let onDialogueDone = null;
+
+    function showDialogue(lines, onDone) {
+      dialogueLines = lines;
+      dialogueIndex = 0;
+      onDialogueDone = onDone;
+      document.getElementById('dialogue-container').style.display = 'block';
+      renderCurrentLine();
+    }
+
+    function renderCurrentLine() {
+      if (dialogueIndex >= dialogueLines.length) {
+        document.getElementById('dialogue-container').style.display = 'none';
+        if (onDialogueDone) onDialogueDone();
+        return;
+      }
+      const line = dialogueLines[dialogueIndex];
+      if (line.onShow) {
+        try { line.onShow(); } catch(e) {}
+      }
+      const box = document.getElementById('dialogue-box');
+      const badge = document.getElementById('dialogue-badge');
+      const textEl = document.getElementById('dialogue-text');
+      const choicesEl = document.getElementById('dialogue-choices');
+      const promptEl = document.getElementById('dialogue-prompt');
+      const portraitEl = document.getElementById('dialogue-portrait');
+
+      box.className = 'bubble-' + line.speakerType;
+      badge.className = 'font-pixel dialog-badge-clip badge-' + line.speakerType;
+      badge.innerText = line.speakerType === 'thought' ? '[BATIN] ' + line.speaker : line.speaker;
+
+      // Bust Portrait with Talking Mouth Animation
+      const isArel = line.speakerType === 'arel' || line.speakerType === 'thought';
+      const isAra = line.speakerType === 'ara';
+      let mouthOpen = false;
+
+      function updatePortrait(open) {
+        let src;
+        if (isArel) {
+          src = open ? '/assets/sprites/arel_bust_talk.png' : '/assets/sprites/arel_bust_idle.png';
+        } else if (isAra) {
+          src = open ? '/assets/sprites/ara_bust_talk.png' : '/assets/sprites/ara_bust_smile.png';
+        } else {
+          src = line.portrait || '/assets/sprites/ara_bust_smile.png';
+        }
+        portraitEl.innerHTML = `<img src="${src}" class="pixelated" style="width: 140px; height: 160px; object-fit: contain; object-position: bottom; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.6));" />`;
+      }
+
+      updatePortrait(true);
+
+      clearInterval(typingInterval);
+      textEl.innerText = '';
+      choicesEl.style.display = 'none';
+      choicesEl.innerHTML = '';
+      promptEl.style.display = line.choices ? 'none' : 'flex';
+      isTyping = true;
+
+      let charIdx = 0;
+      typingInterval = setInterval(() => {
+        charIdx++;
+        textEl.innerText = line.text.slice(0, charIdx);
+        if (charIdx % 2 === 1) playBlip(line.speakerType === 'ara' ? 560 : 440);
+        
+        // Flap mouth while speaking
+        if (charIdx % 4 === 1) {
+          mouthOpen = !mouthOpen;
+          updatePortrait(mouthOpen);
+        }
+
+        if (charIdx >= line.text.length) {
+          clearInterval(typingInterval);
+          isTyping = false;
+          updatePortrait(false); // Closed smile when finished talking!
+          if (line.choices) renderChoices(line.choices, line.onChoice);
+        }
+      }, 24);
+    }
+
+    function advanceDialogue() {
+      const line = dialogueLines[dialogueIndex];
+      if (line && line.choices) return;
+      if (isTyping) {
+        clearInterval(typingInterval);
+        document.getElementById('dialogue-text').innerText = line.text;
+        isTyping = false;
+        const isArel = line.speakerType === 'arel' || line.speakerType === 'thought';
+        const isAra = line.speakerType === 'ara';
+        const src = isArel ? '/assets/sprites/arel_bust_idle.png' : isAra ? '/assets/sprites/ara_bust_smile.png' : (line.portrait || '/assets/sprites/ara_bust_smile.png');
+        document.getElementById('dialogue-portrait').innerHTML = `<img src="${src}" class="pixelated" style="width: 140px; height: 160px; object-fit: contain; object-position: bottom; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.6));" />`;
+        return;
+      }
+      dialogueIndex++;
+      renderCurrentLine();
+    }
+
+    function renderChoices(choices, onChoice) {
+      const choicesEl = document.getElementById('dialogue-choices');
+      choicesEl.style.display = 'flex';
+      choicesEl.innerHTML = '';
+      choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'font-retro';
+        btn.style.cssText = 'background: rgba(15,23,42,0.9); border: 2px solid #ec4899; color: white; padding: 8px 12px; font-size: 20px; text-align: left; cursor: pointer; display: flex; justify-content: space-between;';
+        btn.innerHTML = `<span><strong>[${c.label}]</strong> ${c.text}</span> <span class="font-pixel" style="color: #f59e0b; font-size: 10px;">+${c.points} HATI</span>`;
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          score += c.points;
+          playChime();
+          if (onChoice) onChoice(c);
+          dialogueIndex++;
+          renderCurrentLine();
+        };
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') advanceDialogue();
+    });
+
+    // ==========================================
+    // BABAK 1: PAGI DI TAMAN PIXEL
+    // ==========================================
+    function startBabak1() {
+      const root = document.getElementById('scene-root');
+      root.innerHTML = `
+        <div style="position: absolute; inset: 0; background-image: url(/assets/sprites/tile_grass.png); background-size: 140px 76px;">
+          <!-- Morning Sky -->
+          <div style="position: absolute; top: 0; inset-x: 0; height: 120px; background: linear-gradient(to bottom, #38bdf8, #93c5fd);">
+            <div style="position: absolute; top: 16px; left: 100px; width: 140px; height: 45px;"><img src="/assets/sprites/pixel_cloud.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+            <div style="position: absolute; top: 20px; right: 120px; width: 60px; height: 60px; border-radius: 50%; background: #fef08a; box-shadow: 0 0 50px #fde047;"></div>
+          </div>
+
+          <!-- Trees -->
+          <div style="position: absolute; top: 20px; left: 40px; width: 260px; height: 300px;"><img src="/assets/sprites/tree_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+          
+          <!-- Dedicated Top Bar -->
+          <div class="font-pixel" style="position: absolute; top: 0; inset-x: 0; height: 44px; background: #12141c; border-bottom: 2px solid #2e3440; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 40;">
+            <div style="color: #f59e0b; font-size: 11px;">📖 BABAK 1: PAGI DI TAMAN</div>
+            <div style="color: #94a3b8; font-size: 10px;">MISI: LIHAT ARA & DEKATI TAMAN</div>
+          </div>
+
+          <!-- Ara Sitting on Pixel Bench (Animated Reading/Blinking, Proportional) -->
+          <div style="position: absolute; top: 90px; right: 90px; width: 128px; height: 113px; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.45));">
+            <img id="ara-bench-act1" src="/assets/sprites/ara_bench_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+            <div class="font-pixel" style="position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background: #181920; border: 2px solid #ec4899; color: #fbcfe8; font-size: 8px; padding: 2px 6px; white-space: nowrap;">[ 🌸 ARA SEDANG MEMBACA ]</div>
+          </div>
+
+          <!-- Arel Looking -->
+          <div style="position: absolute; bottom: 120px; left: 140px; width: 80px; height: 160px;">
+            <img src="/assets/sprites/cowo_idle_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+
+          <div class="font-pixel" style="position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); color: #fef08a; padding: 8px 16px; border: 2px solid #475569; font-size: 11px;">
+            BABAK 1: PAGI DI TAMAN
+          </div>
+        </div>
+      `;
+
+      playHeartbeat();
+      showDialogue([
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_scratch.png', text: 'Wah... siapa dia? Kok rasanya waktu berhenti sebentar ya...' },
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Aku harus kenalan. Tapi masa datang dengan tangan kosong?' },
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Di taman ini kan banyak bunga. Kasih bunga aja sebagai hadiah perkenalan!' }
+      ], () => {
+        startBabak2();
+      });
+    }
+
+    // ==========================================
+    // BABAK 2: CARI BUNGA DI TAMAN PIXEL
+    // ==========================================
+    const flowerList = [
+      { id: 1, name: 'Mawar Merah', sprite: '/assets/sprites/flower_red.png', text: 'Mawar merah, simbol cinta. Jangan berlebihan dulu, kan belum kenal.', x: 180, y: 440 },
+      { id: 2, name: 'Daisy', sprite: '/assets/sprites/flower_white.png', text: 'Polos dan manis, mekar di dekat air mancur. Cocok banget.', x: 440, y: 390 },
+      { id: 3, name: 'Bunga Pink', sprite: '/assets/sprites/flower_pink.png', text: 'Warnanya lembut, mirip suasana hatiku pagi ini.', x: 280, y: 220 },
+      { id: 4, name: 'Bunga Matahari', sprite: '/assets/sprites/flower_yellow.png', text: 'Cerah dan hangat, kayak senyum orang tadi.', x: 740, y: 260 },
+      { id: 5, name: 'Lavender', sprite: '/assets/sprites/flower_blooming.png', text: 'Wanginya menenangkan. Ini yang terakhir!', x: 920, y: 440 },
+    ];
+
+    let huntStart = 0;
+    function startBabak2() {
+      flowersPicked = 0;
+      huntStart = Date.now();
+      const root = document.getElementById('scene-root');
+      root.innerHTML = `
+        <div style="position: absolute; inset: 0; background-image: url(/assets/sprites/tile_grass.png); background-size: 140px 76px; overflow: hidden; display: flex; flex-direction: column;">
+          
+          <!-- Dedicated Retro Top HUD Bar (Zero Collisions!) -->
+          <div class="font-pixel" style="position: relative; width: 100%; height: 44px; background: #12141c; border-bottom: 2px solid #2e3440; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 40;">
+            <div style="color: #f59e0b; font-size: 11px;">📖 BABAK 2: CARI 5 BUNGA</div>
+            
+            <!-- 5 Flower Inventory Slots -->
+            <div style="display: flex; align-items: center; gap: 6px; background: #181a22; border: 1px solid #3b4252; padding: 4px 10px;">
+              ${flowerList.map(fl => `
+                <div id="hud-slot-${fl.id}" style="width: 26px; height: 26px; border: 1px solid #475569; background: rgba(15,23,42,0.6); opacity: 0.35; display: flex; align-items: center; justify-content: center;">
+                  <img src="${fl.sprite}" class="pixelated" style="width: 18px; height: 18px; object-fit: contain;" />
+                </div>
+              `).join('')}
+              <span id="hunt-counter" style="color: #f8fafc; font-size: 10px; margin-left: 6px; font-weight: bold;">0/5</span>
+            </div>
+
+            <div style="color: #cbd5e1; font-size: 10px;">⏱️ <span id="hunt-timer-val">0</span>s</div>
+          </div>
+
+          <!-- World Viewport -->
+          <div style="position: relative; flex: 1; overflow: hidden;">
+            <!-- Authentic RPG Dirt Path Network (100% Seamless, Zero Gaps, Perfectly Aligned, Reaches Edges) -->
+            <!-- 1. West Entrance Path -->
+            <div style="position: absolute; top: 354px; left: 0; width: 462px; height: 65px; z-index: 6; pointer-events: none; background-image: url(/assets/sprites/path_straight_h.png); background-repeat: repeat-x; background-size: 96px 65px;"></div>
+
+            <!-- 2. Central 4-Way Crossroad (Flawlessly Aligned with Horizontal & Vertical Roads) -->
+            <div style="position: absolute; top: 282px; left: 459px; width: 171px; height: 194px; z-index: 6; pointer-events: none;">
+              <img src="/assets/sprites/path_crossroad.png" class="pixelated" style="width: 100%; height: 100%; object-fit: contain;" />
+            </div>
+
+            <!-- 3. East Path to Stationery Shop (Parallel to West Path, Reaches Screen Edge) -->
+            <div style="position: absolute; top: 354px; left: 627px; right: 0; height: 65px; z-index: 6; pointer-events: none; background-image: url(/assets/sprites/path_straight_h.png); background-repeat: repeat-x; background-size: 96px 65px;"></div>
+
+            <!-- 4. North Path to Ara Gazebo -->
+            <div style="position: absolute; top: 215px; left: 512px; width: 65px; height: 70px; z-index: 6; pointer-events: none; background-image: url(/assets/sprites/path_straight_v.png); background-repeat: repeat-y; background-size: 65px 96px;"></div>
+
+            <!-- Clean 90-Degree L-Corner Turn to Ara bench -->
+            <div style="position: absolute; top: 148px; left: 512px; width: 101px; height: 101px; z-index: 6; pointer-events: none;">
+              <img src="/assets/sprites/path_corner_L.png" class="pixelated" style="width: 100%; height: 100%; object-fit: contain;" />
+            </div>
+
+            <!-- Upper horizontal path in front of Ara bench (Extends All The Way to Edge) -->
+            <div style="position: absolute; top: 148px; left: 611px; right: 0; height: 65px; z-index: 6; pointer-events: none; background-image: url(/assets/sprites/path_straight_h.png); background-repeat: repeat-x; background-size: 96px 65px;"></div>
+
+            <!-- 5. South Path towards meadow (Extends to bottom edge) -->
+            <div style="position: absolute; top: 474px; bottom: 0; left: 512px; width: 65px; z-index: 6; pointer-events: none; background-image: url(/assets/sprites/path_straight_v.png); background-repeat: repeat-y; background-size: 65px 96px;"></div>
+
+            <!-- Pixel Water Fountain (Symmetrically Centered on Crossroad) -->
+            <div style="position: absolute; top: 309px; left: 461px; width: 160px; height: 150px; filter: drop-shadow(0 12px 16px rgba(0,0,0,0.4)); z-index: 8; pointer-events: none;">
+              <img src="/assets/sprites/fountain.png" class="pixelated" style="width: 100%; height: 100%; object-fit: contain;" />
+            </div>
+
+            <!-- Trees & Bushes (Individual Standalone Props) -->
+            <div style="position: absolute; top: 10px; left: 24px; width: 220px; height: 250px; pointer-events: none; filter: drop-shadow(0 16px 12px rgba(0,0,0,0.4));"><img src="/assets/sprites/tree_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+            <div style="position: absolute; top: 10px; left: 690px; width: 170px; height: 240px; pointer-events: none; filter: drop-shadow(0 14px 8px rgba(0,0,0,0.35));"><img src="/assets/sprites/tree_2.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+            <div style="position: absolute; top: 490px; left: 30px; width: 125px; height: 125px; pointer-events: none; filter: drop-shadow(0 10px 6px rgba(0,0,0,0.3));"><img src="/assets/sprites/bush_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+            <div style="position: absolute; top: 480px; left: 980px; width: 140px; height: 125px; pointer-events: none; filter: drop-shadow(0 8px 6px rgba(0,0,0,0.3));"><img src="/assets/sprites/bush_2.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+            
+            <!-- Ara Sitting on Park Bench (Animated Reading/Blinking, Proportional) -->
+            <div style="position: absolute; top: 96px; left: 895px; width: 128px; height: 113px; pointer-events: none; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.45));">
+              <img id="ara-bench-act2" src="/assets/sprites/ara_bench_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+              <div class="font-pixel" style="position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background: #181920; border: 2px solid #ec4899; color: #fbcfe8; font-size: 8px; padding: 2px 6px; white-space: nowrap;">[ 🌸 ARA SEDANG MEMBACA ]</div>
+            </div>
+
+            <!-- Flowers (With Soft Ground Beds) -->
+            ${flowerList.map(f => `
+              <div id="flower-${f.id}" onclick="pickFlower(${f.id})" style="position: absolute; left: ${f.x}px; top: ${f.y}px; width: 60px; height: 75px; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));">
+                <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 44px; height: 14px; background: rgba(46,29,15,0.35); border-radius: 50%;"></div>
+                <img src="${f.sprite}" class="pixelated" style="width:100%;height:100%;object-fit:contain;position:relative;z-index:2;" />
+              </div>
+            `).join('')}
+
+            <div id="shop-prompt" style="display: none; position: absolute; bottom: 30px; right: 30px; z-index: 20;">
+              <button onclick="startBabak3()" class="pixel-btn pixel-btn-amber font-pixel" style="font-size: 11px; padding: 12px 20px;">
+                🏪 MENUJU TOKO ALAT TULIS →
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Ara reading & blinking animation loop
+      let araFrame = 1;
+      const araInterval = setInterval(() => {
+        const araImg = document.getElementById('ara-bench-act2');
+        if (araImg) {
+          araFrame = araFrame === 1 ? 2 : 1;
+          araImg.src = '/assets/sprites/ara_bench_' + araFrame + '.png';
+        } else {
+          clearInterval(araInterval);
+        }
+      }, 2000);
+
+      // Live timer update
+      const timerInt = setInterval(() => {
+        const timerVal = document.getElementById('hunt-timer-val');
+        if (timerVal && flowersPicked < 5) {
+          timerVal.innerText = Math.floor((Date.now() - huntStart) / 1000);
+        } else {
+          clearInterval(timerInt);
+        }
+      }, 1000);
+    }
+
+    function pickFlower(id) {
+      const el = document.getElementById(`flower-${id}`);
+      if (!el || el.dataset.picked) return;
+      el.dataset.picked = "true";
+      el.style.opacity = '0.2';
+      el.style.pointerEvents = 'none';
+      playChime();
+      flowersPicked++;
+      document.getElementById('hunt-counter').innerText = flowersPicked + '/5';
+      const slot = document.getElementById('hud-slot-' + id);
+      if (slot) {
+        slot.style.opacity = '1';
+        slot.style.borderColor = '#f59e0b';
+        slot.style.background = 'rgba(245, 158, 11, 0.25)';
+        slot.style.boxShadow = '0 0 8px rgba(245,158,11,0.6)';
+      }
+
+      const f = flowerList.find(item => item.id === id);
+      const lines = [
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_talking.png', text: f.text }
+      ];
+
+      if (flowersPicked === 5) {
+        const timeTaken = (Date.now() - huntStart) / 1000;
+        if (timeTaken <= 40) {
+          hasBlueTulip = true;
+          score += 1;
+          lines.push({ speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_smiling.png', text: 'Kamu menemukan Tulip Biru Langka karena bergerak sangat cepat (+1 Poin Bonus)!' });
+        }
+        lines.push({ speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_scratch.png', text: 'Masa dikasih gitu aja? Aku butuh kertas dan pita. Toko alat tulis dekat sini ada.' });
+        document.getElementById('shop-prompt').style.display = 'block';
+      }
+
+      showDialogue(lines);
+    }
+
+    // ==========================================
+    // BABAK 3: TOKO ALAT TULIS
+    // ==========================================
+    function startBabak3() {
+      playChime();
+      const root = document.getElementById('scene-root');
+      root.innerHTML = `
+        <div style="position: absolute; inset: 0; background: #1c1815; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div class="font-pixel" style="background: #111318; border: 2px solid #d97706; color: #f59e0b; padding: 8px 16px; font-size: 11px; align-self: flex-start;">
+            BABAK 3: TOKO ALAT TULIS BU RINI
+          </div>
+
+          <div style="display: flex; gap: 20px; justify-content: center; margin: auto; max-width: 800px; width: 100%;">
+            <!-- Kertas -->
+            <div style="flex: 1; background: #181920; padding: 14px; border: 4px solid #475569;">
+              <div class="font-pixel" style="font-size: 10px; color: #f59e0b; margin-bottom: 10px; border-bottom: 2px solid #334155; padding-bottom: 4px;">1. PILIH KERTAS BUKET:</div>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; background: #0f172a; border: 2px solid #334155; cursor: pointer;">
+                  <input type="radio" name="paper" value="kraft" checked style="accent-color: #f59e0b;">
+                  <div style="width: 36px; height: 36px; background: #111318; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="/assets/sprites/item_paper_kraft.png" class="pixelated" style="width: 28px; height: 28px; object-fit: contain;">
+                  </div>
+                  <div>
+                    <div class="font-pixel" style="font-size: 11px; color: #f8fafc; font-weight: bold;">KERTAS KRAFT</div>
+                    <div style="font-size: 13px; color: #94a3b8;">Alami dan sederhana</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; background: #0f172a; border: 2px solid #334155; cursor: pointer;">
+                  <input type="radio" name="paper" value="pink" style="accent-color: #f59e0b;">
+                  <div style="width: 36px; height: 36px; background: #111318; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="/assets/sprites/item_paper_pink.png" class="pixelated" style="width: 28px; height: 28px; object-fit: contain;">
+                  </div>
+                  <div>
+                    <div class="font-pixel" style="font-size: 11px; color: #f8fafc; font-weight: bold;">PINK PASTEL</div>
+                    <div style="font-size: 13px; color: #94a3b8;">Manis dan lembut</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; background: #0f172a; border: 2px solid #334155; cursor: pointer;">
+                  <input type="radio" name="paper" value="white" style="accent-color: #f59e0b;">
+                  <div style="width: 36px; height: 36px; background: #111318; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="/assets/sprites/item_paper_white.png" class="pixelated" style="width: 28px; height: 28px; object-fit: contain;">
+                  </div>
+                  <div>
+                    <div class="font-pixel" style="font-size: 11px; color: #f8fafc; font-weight: bold;">PUTIH TRANSPARAN</div>
+                    <div style="font-size: 13px; color: #94a3b8;">Elegan dan anggun</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Pita -->
+            <div style="flex: 1; background: #181920; padding: 14px; border: 4px solid #475569;">
+              <div class="font-pixel" style="font-size: 10px; color: #ec4899; margin-bottom: 10px; border-bottom: 2px solid #334155; padding-bottom: 4px;">2. PILIH PITA PENGIKAT:</div>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; background: #0f172a; border: 2px solid #334155; cursor: pointer;">
+                  <input type="radio" name="ribbon" value="red" checked style="accent-color: #ec4899;">
+                  <div style="width: 36px; height: 36px; background: #111318; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="/assets/sprites/item_ribbon_red.png" class="pixelated" style="width: 28px; height: 28px; object-fit: contain;">
+                  </div>
+                  <div>
+                    <div class="font-pixel" style="font-size: 11px; color: #f8fafc; font-weight: bold;">PITA MERAH</div>
+                    <div style="font-size: 13px; color: #94a3b8;">Kesan: Romantis</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; background: #0f172a; border: 2px solid #334155; cursor: pointer;">
+                  <input type="radio" name="ribbon" value="yellow" style="accent-color: #ec4899;">
+                  <div style="width: 36px; height: 36px; background: #111318; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="/assets/sprites/item_ribbon_yellow.png" class="pixelated" style="width: 28px; height: 28px; object-fit: contain;">
+                  </div>
+                  <div>
+                    <div class="font-pixel" style="font-size: 11px; color: #f8fafc; font-weight: bold;">PITA KUNING</div>
+                    <div style="font-size: 13px; color: #94a3b8;">Kesan: Ceria</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 12px; padding: 8px 10px; background: #0f172a; border: 2px solid #334155; cursor: pointer;">
+                  <input type="radio" name="ribbon" value="blue" style="accent-color: #ec4899;">
+                  <div style="width: 36px; height: 36px; background: #111318; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="/assets/sprites/item_ribbon_blue.png" class="pixelated" style="width: 28px; height: 28px; object-fit: contain;">
+                  </div>
+                  <div>
+                    <div class="font-pixel" style="font-size: 11px; color: #f8fafc; font-weight: bold;">PITA BIRU MUDA</div>
+                    <div style="font-size: 13px; color: #94a3b8;">Kesan: Tenang dan segar</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: center;">
+            <button onclick="confirmPurchase()" class="pixel-btn pixel-btn-amber">
+              BELI & BUNGKUS [Rp10.000]
+            </button>
+          </div>
+        </div>
+      `;
+
+      showDialogue([
+        { speaker: 'Penjaga Toko', speakerType: 'toko', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Selamat datang! Cari apa, Mas?' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Mau beli kertas pembungkus sama pita, Bu. Buat bunga.' },
+        { speaker: 'Penjaga Toko', speakerType: 'toko', portrait: '/assets/sprites/cewe_bust_winking.png', text: 'Wah, buat orang spesial ya?' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_scratch.png', text: 'Eh, belum spesial, Bu. Baru mau kenalan.' },
+        { speaker: 'Penjaga Toko', speakerType: 'toko', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Hehe, semangat ya, Mas! Silakan pilih sendiri.' }
+      ]);
+    }
+
+    function confirmPurchase() {
+      const p = document.querySelector('input[name="paper"]:checked').value;
+      const r = document.querySelector('input[name="ribbon"]:checked').value;
+      chosenPaper = p;
+      chosenRibbon = r;
+
+      if ((p === 'kraft' && r === 'red') || (p === 'pink' && r === 'yellow') || (p === 'white' && r === 'blue')) {
+        synergy = true;
+        score += 1;
+      }
+
+      showDialogue([
+        { speaker: 'Penjaga Toko', speakerType: 'toko', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Totalnya sepuluh ribu aja, Mas.' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Terima kasih, Bu!' }
+      ], () => {
+        startBabak4();
+      });
+    }
+
+    // ==========================================
+    // BABAK 4: MERANGKAI BUKET PIXEL
+    // ==========================================
+    function startBabak4() {
+      const root = document.getElementById('scene-root');
+      root.innerHTML = `
+        <div style="position: absolute; inset: 0; background: #172013; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
+          <div class="font-pixel" style="background: #181920; border: 2px solid #d97706; color: #f59e0b; padding: 8px 16px; font-size: 11px;">
+            BABAK 4: BANGKU TAMAN (MERANGKAI BUKET)
+          </div>
+
+          <div style="background: #181920; border: 4px solid #475569; width: 380px; height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+            <div style="width: 140px; height: 160px; position: relative;">
+              <img src="${chosenPaper && chosenRibbon ? '/assets/sprites/bouquet_' + chosenPaper + '_' + chosenRibbon + '.png' : '/assets/sprites/bouquet_full.png'}" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+            </div>
+            <div class="font-pixel" style="font-size: 10px; color: #10b981;">[ BUKET BUNGA HASIL RANGKAIAN ]</div>
+          </div>
+
+          <button onclick="finishCrafting()" class="pixel-btn pixel-btn-pink">
+            IKAT PITA & SELESAIKAN BUKET
+          </button>
+        </div>
+      `;
+
+      showDialogue([
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Yang tinggi di tengah, yang kecil di pinggir...' }
+      ]);
+    }
+
+    function finishCrafting() {
+      playChime();
+      showDialogue([
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_smiling.png', text: 'Selesai! Cantik juga. Semoga dia suka.' },
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_scratch.png', text: 'Sudah sore. Semoga dia masih di taman.' }
+      ], () => {
+        const root = document.getElementById('scene-root');
+        root.innerHTML = `
+          <div style="position: absolute; inset: 0; background: #180d19; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+            <img src="/assets/sprites/sunset_sky.png" class="pixelated" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
+            <div style="position: relative; z-index: 2; background: rgba(24, 25, 32, 0.9); border: 4px solid #f59e0b; padding: 24px 36px; box-shadow: 0 0 50px rgba(245, 158, 11, 0.5);">
+              <div class="font-pixel" style="font-size: 26px; color: #fef08a; letter-spacing: 4px; margin-bottom: 10px;">🌅 SORE HARI</div>
+              <div class="font-retro" style="font-size: 24px; color: #fdf2f8;">Langit berganti jingga keemasan... Arel kembali ke taman.</div>
+            </div>
+          </div>
+        `;
+        setTimeout(() => {
+          startBabak5();
+        }, 2200);
+      });
+    }
+
+    // ==========================================
+    // BABAK 5: TAMAN DI SENJA DENGAN ANIMASI
+    // ==========================================
+    let arelGiving = false;
+    let araAccepting = false;
+    let araRejecting = false;
+
+    function startBabak5() {
+      const root = document.getElementById('scene-root');
+      root.innerHTML = `
+        <div style="position: absolute; inset: 0; background: #180d19; overflow: hidden;">
+          <!-- User's Pixel Sunset Sky with Billowing Clouds -->
+          <div style="position: absolute; inset-x: 0; top: 0; height: 62%; overflow: hidden; pointer-events: none;">
+            <img src="/assets/sprites/sunset_sky.png" class="pixelated" style="width: 100%; height: 100%; object-fit: cover; object-position: bottom;" />
+            <div style="position: absolute; inset-x: 0; bottom: 0; height: 60px; background: linear-gradient(to top, rgba(194, 65, 12, 0.4), transparent);"></div>
+          </div>
+
+          <!-- Pixel Grass Ground -->
+          <div style="position: absolute; bottom: 0; inset-x: 0; height: 45%; background-image: url(/assets/sprites/tile_grass.png); background-size: 140px 76px;">
+            <div style="position: absolute; inset: 0; background: rgba(234,88,12,0.3);"></div>
+          </div>
+
+          <!-- Pixel Trees & Bench in Sunset -->
+          <div style="position: absolute; bottom: 35%; left: 30px; width: 220px; height: 260px; pointer-events: none;"><img src="/assets/sprites/tree_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" /></div>
+
+          <div style="position: absolute; bottom: 21%; left: 650px; width: 180px; height: 119px; pointer-events: none; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.5));">
+            <img src="/assets/sprites/pixel_bench.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+
+          <!-- Characters on Scene -->
+          <div id="arel-char" style="position: absolute; bottom: 20%; left: 380px; width: 85px; height: 170px;">
+            <img id="arel-img" src="/assets/sprites/cowo_idle_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+
+          <div id="ara-char" style="position: absolute; bottom: 20%; left: 685px; width: 85px; height: 170px;">
+            <img id="ara-img" src="/assets/sprites/cewe_idle_1.png" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+
+          <div class="font-pixel" style="position: absolute; top: 16px; left: 16px; background: #181920; border: 2px solid #ea580c; color: #f59e0b; padding: 8px 16px; font-size: 11px;">
+            BABAK 5: PERKENALAN DI SENJA
+          </div>
+        </div>
+      `;
+
+      const paperKey = chosenPaper || 'pink';
+      const ribbonKey = chosenRibbon || 'red';
+
+      showDialogue([
+        { speaker: 'Arel', speakerType: 'thought', portrait: '/assets/sprites/cowo_bust_scratch.png', text: 'Tenang, Arel. Ini cuma kenalan...' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Permisi... boleh ganggu sebentar?' },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Iya? Ada apa ya?' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Tadi pagi aku lihat kamu di sini. Terus kepikiran terus.' },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_talking.png', text: 'Kepikiran? Memangnya aku ngapain?' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Nggak ngapa-ngapain. Cuma duduk baca buku. Tapi entah kenapa, itu yang paling indah dari seluruh taman ini.' },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_winking.png', text: 'Kamu gombal ya?' },
+        { 
+          speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Enggak kok, aku jujur. Buktinya, aku bawa sesuatu.',
+          onShow: () => {
+            const arelImg = document.getElementById('arel-img');
+            const arelChar = document.getElementById('arel-char');
+            if (!arelImg) return;
+            arelChar.style.width = '100px';
+            arelImg.src = `/assets/sprites/cowo_give_2_${paperKey}_${ribbonKey}.png`;
+            setTimeout(() => {
+              arelChar.style.width = '145px';
+              arelImg.src = `/assets/sprites/cowo_give_3_${paperKey}_${ribbonKey}.png`;
+            }, 350);
+            setTimeout(() => {
+              arelChar.style.width = '160px';
+              arelImg.src = `/assets/sprites/cowo_give_4_${paperKey}_${ribbonKey}.png`;
+            }, 700);
+          }
+        },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Aku melihat bunga-bunga ini di taman, dan mereka begitu indah. Menurutku, bunga ini cocok sama kamu yang juga indah.' },
+        { 
+          speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Ya ampun... ini buat aku?',
+          onShow: () => {
+            const araImg = document.getElementById('ara-img');
+            const araChar = document.getElementById('ara-char');
+            const arelImg = document.getElementById('arel-img');
+            const arelChar = document.getElementById('arel-char');
+            if (araImg) {
+              araChar.style.width = '90px';
+              araImg.src = `/assets/sprites/cewe_happy_1_${paperKey}_${ribbonKey}.png`;
+            }
+            if (arelImg) {
+              arelChar.style.width = '85px';
+              arelImg.src = '/assets/sprites/cowo_give_5.png';
+            }
+          }
+        },
+        { 
+          speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Iya, hadiah perkenalan. Tapi sebenarnya bunganya minder, soalnya kalah cantik sama yang megang.',
+          onShow: () => {
+            const araImg = document.getElementById('ara-img');
+            const araChar = document.getElementById('ara-char');
+            if (araImg) {
+              araChar.style.width = '95px';
+              araImg.src = `/assets/sprites/cewe_happy_2_${paperKey}_${ribbonKey}.png`;
+            }
+          }
+        },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_cheering.png', text: 'Hahaha! Dapat gombalan dari mana sih?' },
+        {
+          speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_talking.png', text: 'Kamu belum kenalan lho. Siapa namamu?',
+          choices: [
+            { label: 'A', text: 'Namaku Arel. Kamu? Biar aku tahu nama orang yang bikin aku nggak fokus seharian.', points: 3 },
+            { label: 'B', text: 'Arel. Kamu pasti Ara, kan? ...Eh, itu aku lihat dari buku kamu.', points: 2 },
+            { label: 'C', text: "Namaku Arel, tapi panggil aja 'Yang'.", points: 1 }
+          ]
+        },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Aku Ara. Senang kenalan sama kamu, Arel.' },
+        {
+          speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_talking.png', text: 'Bunganya wangi banget. Kamu sendiri yang rangkai?',
+          onShow: () => {
+            const araImg = document.getElementById('ara-img');
+            const araChar = document.getElementById('ara-char');
+            if (araImg) {
+              araChar.style.width = '82px';
+              araImg.src = `/assets/sprites/cewe_happy_3_${paperKey}_${ribbonKey}.png`;
+            }
+          },
+          choices: [
+            { label: 'A', text: 'Iya, aku petik dan rangkai sendiri. Pilih yang cocok sama kamu satu-satu.', points: 3 },
+            { label: 'B', text: 'Iya, tapi tadi sempat berantakan. Ini percobaan kedua.', points: 2 },
+            { label: 'C', text: 'Bukan, aku beli di toko.', points: 0 }
+          ]
+        },
+        { 
+          speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_smiling.png', text: 'Aku suka yang kuning ini, bunga matahari kan?',
+          onShow: () => {
+            const araImg = document.getElementById('ara-img');
+            const araChar = document.getElementById('ara-char');
+            if (araImg) {
+              araChar.style.width = '95px';
+              araImg.src = `/assets/sprites/cewe_happy_2_${paperKey}_${ribbonKey}.png`;
+            }
+          }
+        },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Iya. Kayak kamu, bikin suasana taman jadi lebih hangat.' },
+        { 
+          speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_winking.png', text: 'Stop! Pipiku sakit senyum terus!',
+          onShow: () => {
+            const araImg = document.getElementById('ara-img');
+            const araChar = document.getElementById('ara-char');
+            if (araImg) {
+              araChar.style.width = '75px';
+              araImg.src = '/assets/sprites/cewe_happy_4.png';
+            }
+          }
+        },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Berarti misiku berhasil.' },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_talking.png', text: 'Misi apa?' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Bikin kamu senyum. Sepertinya aku dapat nilai A.' },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_winking.png', text: 'Hmm, tergantung. Kamu masih harus ngajak aku ngobrol lebih lama.' },
+        { speaker: 'Arel', speakerType: 'arel', portrait: '/assets/sprites/cowo_bust_talking.png', text: 'Boleh! Jalan keliling taman sambil lihat bunga lain?' },
+        { speaker: 'Ara', speakerType: 'ara', portrait: '/assets/sprites/cewe_bust_cheering.png', text: 'Boleh. Yuk!' }
+      ], () => {
+        showEndingScreen();
+      });
+    }
+
+    function showEndingScreen() {
+      playChime();
+      let ending = 'A';
+      if (score >= 5) ending = 'A';
+      else if (score >= 3) ending = 'B';
+      else ending = 'C';
+
+      if (ending !== 'C') {
+        document.getElementById('ara-img').src = '/assets/sprites/cewe_accepting_bouquet.png';
+      } else {
+        document.getElementById('ara-img').src = '/assets/sprites/cewe_awkward_reject.png';
+      }
+
+      const root = document.getElementById('scene-root');
+      root.innerHTML = `
+        <div style="position: absolute; inset: 0; background: rgba(10,5,15,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
+          <div style="background: #181920; border: 4px solid #f59e0b; padding: 28px; max-width: 600px; width: 100%; box-shadow: 0 0 50px rgba(245,158,11,0.5);">
+            <div class="font-pixel" style="font-size: 14px; color: #f59e0b; margin-bottom: 8px;">
+              ${ending === 'A' ? 'ENDING A: AWAL YANG INDAH' : ending === 'B' ? 'ENDING B: TEMAN BARU' : 'ENDING C: CANGGUNG'}
+            </div>
+            <div class="font-pixel" style="font-size: 10px; color: #ec4899; margin-bottom: 16px;">
+              TOTAL SKOR KESAN: ${score} POIN
+            </div>
+
+            <div style="width: 100px; height: 100px; margin: 0 auto 12px; position: relative;">
+              <img src="${ending === 'C' ? '/assets/sprites/flower_wilting.png' : (chosenPaper && chosenRibbon ? '/assets/sprites/bouquet_' + chosenPaper + '_' + chosenRibbon + '.png' : '/assets/sprites/bouquet_full.png')}" class="pixelated" style="width:100%;height:100%;object-fit:contain;" />
+            </div>
+
+            <div class="font-retro" style="font-size: 24px; color: #f8fafc; line-height: 1.3; margin-bottom: 20px;">
+              ${ending === 'A' ? `
+                <p style="color: #f472b6; font-style: italic;">Ara: "Besok pagi aku di bangku yang sama lagi. Jangan lupa bawa bunga yang lain ya."</p>
+                <p style="color: #f59e0b; font-style: italic; margin-top: 6px;">Arel: "Siap! Kali ini lebih banyak."</p>
+                <p style="font-size: 18px; color: #cbd5e1; margin-top: 12px; border-top: 2px solid #475569; padding-top: 10px;">
+                  <strong>Hasil:</strong> Mereka bertukar nomor dan memulai kisah baru yang hangat di taman kota.
+                </p>
+              ` : ending === 'B' ? `
+                <p style="color: #f472b6; font-style: italic;">Ara: "Makasih bunganya. Mungkin kita bisa ngobrol lagi lain kali."</p>
+                <p style="font-size: 18px; color: #cbd5e1; margin-top: 12px; border-top: 2px solid #475569; padding-top: 10px;">
+                  <strong>Hasil:</strong> Mereka menjadi teman baik dan tersenyum tiap bertemu di taman.
+                </p>
+              ` : `
+                <p style="color: #f472b6; font-style: italic;">Ara: "Makasih bunganya... aku harus pulang dulu ya."</p>
+                <p style="font-size: 18px; color: #cbd5e1; margin-top: 12px; border-top: 2px solid #475569; padding-top: 10px;">
+                  <strong>Hasil:</strong> Arel belajar untuk lebih santai, jujur, dan natural saat berkenalan.
+                </p>
+              `}
+            </div>
+
+            <button onclick="startBabak1()" class="pixel-btn pixel-btn-amber" style="width: 100%;">
+              MAIN LAGI
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    window.onload = () => {
+      startBabak1();
+    };
+  </script>
+</body>
+</html>
